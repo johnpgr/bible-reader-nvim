@@ -261,7 +261,7 @@ function M.setup(opts)
 		end
 	end, {
 		nargs = "*",
-		complete = function(arg_lead, cmd_line, cursor_pos)
+		complete = function(arg_lead, _, _)
 			local bible = require("bible-reader")
 			local bible_data = bible.load_bible_data(require("bible-reader.view").get_translation())
 			if not bible_data then
@@ -277,7 +277,56 @@ function M.setup(opts)
 			return completions
 		end,
 	})
-	vim.api.nvim_create_user_command("BibleTranslation", view.select_translation, {})
+	vim.api.nvim_create_user_command("BibleTranslation", function(args)
+		if args.args == "" then
+			view.select_translation()
+		else
+			local translation = args.args:lower()
+			local available_translations = M.get_available_translations()
+
+			-- Check if translation is downloaded
+			local translation_exists = false
+			for _, t in ipairs(available_translations) do
+				if t:lower() == translation then
+					translation_exists = true
+					break
+				end
+			end
+
+			if not translation_exists then
+				vim.notify(
+					string.format(
+						"Translation '%s' is not downloaded. Available translations: %s",
+						translation,
+						table.concat(available_translations, ", ")
+					),
+					vim.log.levels.ERROR
+				)
+				return
+			end
+
+			view.set_translation(translation)
+			vim.notify(string.format("Changed translation to %s", translation:upper()), vim.log.levels.INFO)
+
+			-- Refresh current view if a chapter is open
+			local current = view.get_current_view()
+			if current then
+				view.open_chapter(translation, current.book_index, current.chapter, current.verse)
+			end
+		end
+	end, {
+		nargs = "?",
+		complete = function(arg_lead, _, _)
+			local translations = M.get_available_translations()
+			local completions = {}
+			for _, translation in ipairs(translations) do
+				if translation:lower():find(arg_lead:lower(), 1, true) then
+					table.insert(completions, translation)
+				end
+			end
+			return completions
+		end,
+	})
 end
 
 return M

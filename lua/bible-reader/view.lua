@@ -29,6 +29,12 @@ end
 ---@type ViewConfig|nil
 local current_view = nil
 
+---Get the current view
+---@return ViewConfig|nil
+function M.get_current_view()
+	return current_view
+end
+
 ---@class FormatOptions
 ---@field max_line_length number Maximum line length for text wrapping
 ---@field indent_size number Number of spaces to indent wrapped lines
@@ -100,18 +106,23 @@ function M.select_translation()
 			sorter = conf.generic_sorter({}),
 			attach_mappings = function(prompt_bufnr, _)
 				actions.select_default:replace(function()
-                    actions.close(prompt_bufnr)
-                    local selection = action_state.get_selected_entry()
-                    M.set_translation(selection.value)
-                    vim.notify(
-                        string.format(i18n[current_language].changed_translation, selection.value:upper()),
-                        vim.log.levels.INFO
-                    )
+					actions.close(prompt_bufnr)
+					local selection = action_state.get_selected_entry()
+					M.set_translation(selection.value)
+					vim.notify(
+						string.format(i18n[current_language].changed_translation, selection.value:upper()),
+						vim.log.levels.INFO
+					)
 
-                    -- Refresh current view if a chapter is open
-                    if current_view then
-                        M.open_chapter(selection.value, current_view.book_index, current_view.chapter, current_view.verse)
-                    end
+					-- Refresh current view if a chapter is open
+					if current_view then
+						M.open_chapter(
+							selection.value,
+							current_view.book_index,
+							current_view.chapter,
+							current_view.verse
+						)
+					end
 				end)
 				return true
 			end,
@@ -283,92 +294,92 @@ end
 ---@param chapter number Chapter number
 ---@param verse? number Optional verse number to focus on
 function M.open_chapter(translation, book, chapter, verse)
-    local bible = require("bible-reader")
-    local bible_data = bible.load_bible_data(translation)
-    if not bible_data then
-        vim.notify("Failed to load Bible data", vim.log.levels.ERROR)
-        return
-    end
+	local bible = require("bible-reader")
+	local bible_data = bible.load_bible_data(translation)
+	if not bible_data then
+		vim.notify("Failed to load Bible data", vim.log.levels.ERROR)
+		return
+	end
 
-    -- Find the book by index if number, otherwise by name
-    local book_data
-    local book_index
+	-- Find the book by index if number, otherwise by name
+	local book_data
+	local book_index
 
-    if type(book) == "number" then
-        book_data = bible_data[book]
-        book_index = book
-    else
-        for idx, b in ipairs(bible_data) do
-            if b.name:lower() == book:lower() or b.abbrev:lower() == book:lower() then
-                book_data = b
-                book_index = idx
-                break
-            end
-        end
-    end
+	if type(book) == "number" then
+		book_data = bible_data[book]
+		book_index = book
+	else
+		for idx, b in ipairs(bible_data) do
+			if b.name:lower() == book:lower() or b.abbrev:lower() == book:lower() then
+				book_data = b
+				book_index = idx
+				break
+			end
+		end
+	end
 
-    if not book_data then
-        vim.notify("Book not found: " .. tostring(book) .. " in translation " .. translation, vim.log.levels.ERROR)
-        return
-    end
+	if not book_data then
+		vim.notify("Book not found: " .. tostring(book) .. " in translation " .. translation, vim.log.levels.ERROR)
+		return
+	end
 
-    -- Get chapter verses
-    local chapter_verses = book_data.chapters[chapter]
-    if not chapter_verses then
-        vim.notify("Chapter not found: " .. chapter, vim.log.levels.ERROR)
-        return
-    end
+	-- Get chapter verses
+	local chapter_verses = book_data.chapters[chapter]
+	if not chapter_verses then
+		vim.notify("Chapter not found: " .. chapter, vim.log.levels.ERROR)
+		return
+	end
 
-    -- Check for existing buffer and delete it if it exists
-    local buf_name = string.format("bible://%s/%s/%d", translation, book_data.name, chapter)
-    local existing_buf = vim.fn.bufnr(buf_name)
-    if existing_buf ~= -1 then
-        vim.api.nvim_buf_delete(existing_buf, { force = true })
-    end
+	-- Check for existing buffer and delete it if it exists
+	local buf_name = string.format("bible://%s/%s/%d", translation, book_data.name, chapter)
+	local existing_buf = vim.fn.bufnr(buf_name)
+	if existing_buf ~= -1 then
+		vim.api.nvim_buf_delete(existing_buf, { force = true })
+	end
 
-    -- Create buffer
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(buf, buf_name)
+	-- Create buffer
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_name(buf, buf_name)
 
-    -- Convert verses to the expected format for format_chapter
-    ---@type BibleVerse[]
-    local verses = {}
-    for verse_num, verse_text in ipairs(chapter_verses) do
-        table.insert(verses, { verse = verse_num, text = verse_text })
-    end
+	-- Convert verses to the expected format for format_chapter
+	---@type BibleVerse[]
+	local verses = {}
+	for verse_num, verse_text in ipairs(chapter_verses) do
+		table.insert(verses, { verse = verse_num, text = verse_text })
+	end
 
-    -- Format verses for display with word wrapping
-    local lines = format_chapter(verses, chapter, book_data.name)
+	-- Format verses for display with word wrapping
+	local lines = format_chapter(verses, chapter, book_data.name)
 
-    -- Set buffer content while it's still modifiable
-    vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+	-- Set buffer content while it's still modifiable
+	vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
 
-    -- Now set buffer options after content is set
-    vim.bo[buf].modifiable = false
-    vim.bo[buf].buftype = "nofile"
-    vim.bo[buf].bufhidden = "hide"
-    vim.bo[buf].swapfile = false
+	-- Now set buffer options after content is set
+	vim.bo[buf].modifiable = false
+	vim.bo[buf].buftype = "nofile"
+	vim.bo[buf].bufhidden = "hide"
+	vim.bo[buf].swapfile = false
 
-    -- Open in current window
-    local win = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_buf(win, buf)
+	-- Open in current window
+	local win = vim.api.nvim_get_current_win()
+	vim.api.nvim_win_set_buf(win, buf)
 
-    current_view = { translation = translation, book = book_data.name, book_index = book_index, chapter = chapter, verse = verse }
-    -- Set up winbar
-    vim.wo[win].winbar = make_winbar(current_view)
+	current_view =
+		{ translation = translation, book = book_data.name, book_index = book_index, chapter = chapter, verse = verse }
+	-- Set up winbar
+	vim.wo[win].winbar = make_winbar(current_view)
 
-    -- If a verse is specified, find and move cursor to that verse
-    if verse then
-        local verse_pattern = to_superscript(verse) .. " "
-        for i, line in ipairs(lines) do
-            if line:find(verse_pattern, 1, true) then
-                vim.api.nvim_win_set_cursor(win, {i, 0})
-                break
-            end
-        end
-    end
+	-- If a verse is specified, find and move cursor to that verse
+	if verse then
+		local verse_pattern = to_superscript(verse) .. " "
+		for i, line in ipairs(lines) do
+			if line:find(verse_pattern, 1, true) then
+				vim.api.nvim_win_set_cursor(win, { i, 0 })
+				break
+			end
+		end
+	end
 end
-
 
 ---Setup telescope picker for Bible books
 function M.select_book()
