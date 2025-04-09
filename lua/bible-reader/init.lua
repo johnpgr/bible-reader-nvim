@@ -87,8 +87,6 @@ function M.load_bible_data(translation)
 		content = content:sub(3)
 	end
 
-	-- Debug: Show first 100 characters after BOM removal
-	vim.notify("First 100 chars (after BOM removal): " .. content:sub(1, 100), vim.log.levels.DEBUG)
 
 	-- Parse JSON and cache it
 	local success, decoded = pcall(vim.json.decode, content)
@@ -213,48 +211,41 @@ end
 ---@class BibleReaderOptions
 ---@field translation? string Default translation to use (e.g., 'pt_nvi', 'en_kjv')
 ---@field format? BibleFormatOptions Formatting options for Bible text display
+---@field language? string Language code for UI strings (e.g., 'en', 'pt_br', default: 'en')
+
+-- Default configuration
+local default_config = {
+    translation = "en_kjv",
+    language = "en",
+    format = {
+        max_line_length = 80,
+        indent_size = 0,
+        verse_spacing = 0,
+        chapter_header = true,
+    }
+}
 
 ---Setup the plugin with options
 ---@param opts? BibleReaderOptions Plugin options
 function M.setup(opts)
-	opts = opts or {}
+    opts = vim.tbl_deep_extend("force", default_config, opts or {})
 
-	-- Set default translation if provided
-	if opts.translation then
-		local view = require("bible-reader.view")
-		view.set_translation(opts.translation)
-	end
+    -- Set default translation if provided
+    local view = require("bible-reader.view")
+    view.set_translation(opts.translation)
 
-	-- Set format options if provided
-	if opts.format then
-		local view = require("bible-reader.view")
-		view.set_format_options(opts.format)
-	end
+    -- Set language for UI strings
+    if opts.language then
+        view.set_language(opts.language)
+    end
+
+    -- Set format options if provided
+    view.set_format_options(opts.format)
 
 	-- Create commands
-	vim.api.nvim_create_user_command("BibleDownload", function()
-		M.setup_telescope()
-	end, {})
-
-	vim.api.nvim_create_user_command("BibleRead", function()
-		local view = require("bible-reader.view")
-		view.select_book()
-	end, {})
-
-	vim.api.nvim_create_user_command("BibleTranslation", function()
-		local view = require("bible-reader.view")
-		view.select_translation()
-	end, {})
-end
-
--- Development reload function
-function M.dev_reload()
-	-- Clear loaded modules
-	package.loaded["bible-reader"] = nil
-	package.loaded["bible-reader.view"] = nil
-	package.loaded["bible-reader.util"] = nil
-	-- Reload the module
-	return require("bible-reader")
+	vim.api.nvim_create_user_command("BibleDownload", M.setup_telescope, {})
+	vim.api.nvim_create_user_command("BibleRead", view.select_book, {})
+	vim.api.nvim_create_user_command("BibleTranslation", view.select_translation, {})
 end
 
 return M
