@@ -87,7 +87,6 @@ function M.load_bible_data(translation)
 		content = content:sub(3)
 	end
 
-
 	-- Parse JSON and cache it
 	local success, decoded = pcall(vim.json.decode, content)
 	if not success then
@@ -215,36 +214,69 @@ end
 
 -- Default configuration
 local default_config = {
-    translation = "en_kjv",
-    language = "en",
-    format = {
-        max_line_length = 80,
-        indent_size = 0,
-        verse_spacing = 0,
-        chapter_header = true,
-    }
+	translation = "en_kjv",
+	language = "en",
+	format = {
+		max_line_length = 80,
+		indent_size = 0,
+		verse_spacing = 0,
+		chapter_header = true,
+	},
 }
 
 ---Setup the plugin with options
 ---@param opts? BibleReaderOptions Plugin options
 function M.setup(opts)
-    opts = vim.tbl_deep_extend("force", default_config, opts or {})
+	opts = vim.tbl_deep_extend("force", default_config, opts or {})
 
-    -- Set default translation if provided
-    local view = require("bible-reader.view")
-    view.set_translation(opts.translation)
+	-- Set default translation if provided
+	local view = require("bible-reader.view")
+	view.set_translation(opts.translation)
 
-    -- Set language for UI strings
-    if opts.language then
-        view.set_language(opts.language)
-    end
+	-- Set language for UI strings
+	if opts.language then
+		view.set_language(opts.language)
+	end
 
-    -- Set format options if provided
-    view.set_format_options(opts.format)
+	-- Set format options if provided
+	view.set_format_options(opts.format)
 
 	-- Create commands
 	vim.api.nvim_create_user_command("BibleDownload", M.setup_telescope, {})
-	vim.api.nvim_create_user_command("BibleRead", view.select_book, {})
+	vim.api.nvim_create_user_command("BibleRead", function(args)
+		if args.args == "" then
+			view.select_book()
+		else
+			-- Parse args format: <book> <chapter> [verse]
+			local parts = vim.split(args.args, " ")
+			local book = parts[1]
+			local chapter = tonumber(parts[2])
+			local verse = tonumber(parts[3])
+
+			if book and chapter then
+				view.open_chapter(view.get_translation(), book, chapter, verse)
+			else
+				vim.notify("Usage: BibleRead <book> <chapter> [verse]", vim.log.levels.ERROR)
+			end
+		end
+	end, {
+		nargs = "*",
+		complete = function(arg_lead, cmd_line, cursor_pos)
+			local bible = require("bible-reader")
+			local bible_data = bible.load_bible_data(require("bible-reader.view").get_translation())
+			if not bible_data then
+				return {}
+			end
+
+			local completions = {}
+			for _, book in ipairs(bible_data) do
+				if book.abbrev and book.abbrev:lower():find(arg_lead:lower(), 1, true) then
+					table.insert(completions, book.abbrev)
+				end
+			end
+			return completions
+		end,
+	})
 	vim.api.nvim_create_user_command("BibleTranslation", view.select_translation, {})
 end
 
