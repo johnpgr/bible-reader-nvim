@@ -8,14 +8,21 @@ local current_language = "en"
 -- Set UI language
 ---@param lang string Language code (e.g., 'en', 'pt_br')
 function M.set_language(lang)
-    if i18n[lang] then
-        current_language = lang
-    end
+	if i18n[lang] then
+		current_language = lang
+	end
+end
+
+---Get the current UI language
+---@return string
+function M.get_language()
+	return current_language
 end
 
 ---@class ViewConfig
 ---@field translation string Current translation being viewed
 ---@field book string Current book being viewed
+---@field book_index number Current book index being viewed (1-based)
 ---@field chapter number Current chapter being viewed
 ---@field verse number? Current verse being viewed
 
@@ -78,8 +85,8 @@ function M.select_translation()
 
 	pickers
 		.new({}, {
-            prompt_title = i18n[current_language].bible_translations,
-            results_title = "",
+			prompt_title = i18n[current_language].bible_translations,
+			results_title = "",
 			finder = finders.new_table({
 				results = translations,
 				entry_maker = function(entry)
@@ -93,10 +100,18 @@ function M.select_translation()
 			sorter = conf.generic_sorter({}),
 			attach_mappings = function(prompt_bufnr, _)
 				actions.select_default:replace(function()
-					actions.close(prompt_bufnr)
-					local selection = action_state.get_selected_entry()
-					M.set_translation(selection.value)
-                    vim.notify(string.format(i18n[current_language].changed_translation, selection.value:upper()), vim.log.levels.INFO)
+                    actions.close(prompt_bufnr)
+                    local selection = action_state.get_selected_entry()
+                    M.set_translation(selection.value)
+                    vim.notify(
+                        string.format(i18n[current_language].changed_translation, selection.value:upper()),
+                        vim.log.levels.INFO
+                    )
+
+                    -- Refresh current view if a chapter is open
+                    if current_view then
+                        M.open_chapter(selection.value, current_view.book_index, current_view.chapter, current_view.verse)
+                    end
 				end)
 				return true
 			end,
@@ -225,31 +240,31 @@ local function select_chapter(book, translation)
 
 	pickers
 		.new({}, {
-            prompt_title = string.format(i18n[current_language].select_chapter, book.name:upper()),
+			prompt_title = string.format(i18n[current_language].select_chapter, book.name:upper()),
 			finder = finders.new_table({
 				results = chapters,
 				entry_maker = function(entry)
 					return {
 						value = entry.number,
-                        display = string.format(i18n[current_language].chapter, entry.number),
+						display = string.format(i18n[current_language].chapter, entry.number),
 						ordinal = tostring(entry.number),
 						verses = entry.verses,
 					}
 				end,
 			}),
 			sorter = conf.generic_sorter({}),
-            previewer = require("telescope.previewers").new_buffer_previewer({
-                title = i18n[current_language].chapter_preview,
-                define_preview = function(self, entry)
-                    -- Format the chapter content using our existing formatter
-                    local formatted_lines = format_chapter(entry.verses, entry.value, book.name)
-                    vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, formatted_lines)
+			previewer = require("telescope.previewers").new_buffer_previewer({
+				title = i18n[current_language].chapter_preview,
+				define_preview = function(self, entry)
+					-- Format the chapter content using our existing formatter
+					local formatted_lines = format_chapter(entry.verses, entry.value, book.name)
+					vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, formatted_lines)
 
-                    -- Set buffer options for better preview rendering
-                    vim.opt_local.wrap = true
-                    vim.opt_local.linebreak = true
-                end,
-            }),
+					-- Set buffer options for better preview rendering
+					vim.opt_local.wrap = true
+					vim.opt_local.linebreak = true
+				end,
+			}),
 			attach_mappings = function(prompt_bufnr, _)
 				actions.select_default:replace(function()
 					actions.close(prompt_bufnr)
@@ -264,7 +279,7 @@ end
 
 ---Open a Bible chapter for reading
 ---@param translation string Translation identifier
----@param book string Book name
+---@param book string|number Book name or index
 ---@param chapter number Chapter number
 ---@param verse? number Optional verse number to focus on
 function M.open_chapter(translation, book, chapter, verse)
@@ -275,30 +290,45 @@ function M.open_chapter(translation, book, chapter, verse)
 		return
 	end
 
-	-- Find the book by name or abbreviation
+	-- Find the book by index if number, otherwise by name
 	local book_data
-	for _, b in ipairs(bible_data) do
-		if b.name == book or b.abbrev == book:lower() then
-			book_data = b
-			break
+	local book_index
+
+	if type(book) == "number" then
+		book_data = bible_data[book]
+		book_index = book
+	else
+		for idx, b in ipairs(bible_data) do
+			if b.name:lower() == book:lower() or b.abbrev:lower() == book:lower() then
+				book_data = b
+				book_index = idx
+				break
+			end
 		end
 	end
 
 	if not book_data then
-		vim.notify("Book not found: " .. book, vim.log.levels.ERROR)
+		vim.notify("Book not found: " .. tostring(book) .. " in translation " .. translation, vim.log.levels.ERROR)
 		return
 	end
 
 	-- Get chapter verses
-	local chapter_verses = book_data.chapters[chapter]
-	if not chapter_verses then
-		vim.notify("Chapter not found: " .. chapter, vim.log.levels.ERROR)
-		return
-	end
+    local chapter_verses = book_data.chapters[chapter]
+    if not chapter_verses then
+        vim.notify("Chapter not found: " .. chapter, vim.log.levels.ERROR)
+        return
+    end
 
-	-- Create buffer
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_name(buf, string.format("bible://%s/%s/%d", translation, book_data.name, chapter))
+    -- Check for existing buffer and delete it if it exists
+    local buf_name = string.format("bible://%s/%s/%d", translation, book_data.name, chapter)
+    local existing_buf = vim.fn.bufnr(buf_name)
+    if existing_buf ~= -1 then
+        vim.api.nvim_buf_delete(existing_buf, { force = true })
+    end
+
+    -- Create buffer
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(buf, buf_name)
 
 	-- Convert verses to the expected format for format_chapter
 	---@type BibleVerse[]
@@ -323,8 +353,8 @@ function M.open_chapter(translation, book, chapter, verse)
 	local win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(win, buf)
 
+    current_view = { translation = translation, book = book_data.name, book_index = book_index, chapter = chapter, verse = verse }
 	-- Set up winbar
-	current_view = { translation = translation, book = book_data.name, chapter = chapter, verse = verse }
 	vim.wo[win].winbar = make_winbar(current_view)
 end
 
@@ -370,14 +400,14 @@ function M.select_book()
 
 	pickers
 		.new({}, {
-            prompt_title = i18n[current_language].bible_books,
-            results_title = "",
+			prompt_title = i18n[current_language].bible_books,
+			results_title = "",
 			finder = finders.new_table({
 				results = entries,
 				entry_maker = function(entry)
 					return {
 						value = entry,
-                        display = string.format(i18n[current_language].book_format, entry.name, entry.total_chapters),
+						display = string.format(i18n[current_language].book_format, entry.name, entry.total_chapters),
 						ordinal = entry.name,
 					}
 				end,
