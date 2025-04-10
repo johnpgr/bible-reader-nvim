@@ -67,6 +67,9 @@ require('bible-reader').setup({
     language = 'en'
 })
 ```
+## Data Source
+
+The JSON files used by this plugin for Bible translations and chapters are downloaded from the [thiagobodruk/bible](https://github.com/thiagobodruk/bible) repository. This repository provides structured and open-source Bible data in JSON format, making it easy to integrate various translations and languages into this plugin.
 
 ## Usage
 
