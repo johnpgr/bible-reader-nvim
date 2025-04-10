@@ -76,7 +76,7 @@ The JSON files used by this plugin for Bible translations and chapters are downl
 ### Commands
 
 - `:BibleRead` - Open book selection with Telescope
-- `:BibleRead <book> <chapter> [verse]` - Open specific chapter
+- `:BibleRead <book abbreviation> <chapter> [verse]` - Open specific book, chapter and verse
 - `:BibleTranslation` - Change Bible translation
 - `:BibleDownload` - Download available translations
 - `:BibleNextChapter` - View next chapter (relative to current chapter)
