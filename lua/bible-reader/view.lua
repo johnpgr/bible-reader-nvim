@@ -40,13 +40,16 @@ end
 ---@field indent_size number Number of spaces to indent wrapped lines
 ---@field verse_spacing number Number of lines between verses
 ---@field chapter_header boolean Whether to show chapter header
+---@field break_verses boolean Whether to start each verse on a new line
 
 -- Default format options
+---@type FormatOptions
 local format_options = {
 	max_line_length = 80,
 	indent_size = 0,
 	verse_spacing = 0,
 	chapter_header = true,
+    break_verses = true,
 }
 
 ---Set format options for Bible display
@@ -56,6 +59,7 @@ function M.set_format_options(opts)
 	format_options.indent_size = opts.indent_size or format_options.indent_size
 	format_options.verse_spacing = opts.verse_spacing or format_options.verse_spacing
 	format_options.chapter_header = opts.chapter_header ~= nil and opts.chapter_header or format_options.chapter_header
+    format_options.break_verses = opts.break_verses ~= nil and opts.break_verses or format_options.break_verses
 end
 
 -- Default translation (can be changed via setup)
@@ -204,12 +208,14 @@ local function format_chapter(verses, chapter_num, book_name)
 		-- End of verse
 		if current_line ~= "" then
 			table.insert(lines, current_line)
-			current_line = ""
-			line_length = 0
+            if format_options.break_verses then
+                current_line = ""
+                line_length = 0
+            end
 		end
 
 		-- Add verse spacing if configured
-		if format_options.verse_spacing > 0 then
+		if format_options.verse_spacing > 0 and format_options.break_verses then
 			for _ = 1, format_options.verse_spacing do
 				table.insert(lines, "")
 			end

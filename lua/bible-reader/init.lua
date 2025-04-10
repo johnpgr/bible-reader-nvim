@@ -140,6 +140,7 @@ end
 ---@field indent_size number Number of spaces to indent wrapped lines (default: 0)
 ---@field verse_spacing number Number of lines between verses (default: 0)
 ---@field chapter_header boolean Whether to show chapter header (default: true)
+---@field break_verses boolean Whether to start each verse on a new line (default: true)
 
 ---@class BibleReaderOptions
 ---@field translation? string Default translation to use (e.g., 'pt_nvi', 'en_kjv')
@@ -147,6 +148,7 @@ end
 ---@field language? string Language code for UI strings (e.g., 'en', 'pt_br', default: 'en')
 
 -- Default configuration
+---@type BibleReaderOptions
 local default_config = {
 	translation = "en_kjv",
 	language = "en",
@@ -155,6 +157,7 @@ local default_config = {
 		indent_size = 0,
 		verse_spacing = 0,
 		chapter_header = true,
+        break_verses = true,
 	},
 }
 
