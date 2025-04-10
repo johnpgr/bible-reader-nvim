@@ -140,7 +140,6 @@ end
 ---@field indent_size number Number of spaces to indent wrapped lines (default: 0)
 ---@field verse_spacing number Number of lines between verses (default: 0)
 ---@field chapter_header boolean Whether to show chapter header (default: true)
----@field chapter_header_format string Format for chapter header (default: "Chapter %d")
 
 ---@class BibleReaderOptions
 ---@field translation? string Default translation to use (e.g., 'pt_nvi', 'en_kjv')

@@ -68,144 +68,144 @@ local function bible_download_handler()
 end
 
 local function bible_read_handler(args)
-    if args.args == "" then
-        view.select_book()
-    else
-        -- Parse args format: <book> <chapter> [verse]
-        local parts = vim.split(args.args, " ")
-        local book = parts[1]
-        local chapter = tonumber(parts[2])
-        local verse = tonumber(parts[3])
+	if args.args == "" then
+		view.select_book()
+	else
+		-- Parse args format: <book> <chapter> [verse]
+		local parts = vim.split(args.args, " ")
+		local book = parts[1]
+		local chapter = tonumber(parts[2])
+		local verse = tonumber(parts[3])
 
-        if book and chapter then
-            view.open_chapter(view.get_translation(), book, chapter, verse)
-        else
-            vim.notify("Usage: BibleRead <book> <chapter> [verse]", vim.log.levels.ERROR)
-        end
-    end
+		if book and chapter then
+			view.open_chapter(view.get_translation(), book, chapter, verse)
+		else
+			vim.notify("Usage: BibleRead <book> <chapter> [verse]", vim.log.levels.ERROR)
+		end
+	end
 end
 
 local function bible_read_complete(arg_lead)
-    local bible_data = bible.load_bible_data(view.get_translation())
-    if not bible_data then
-        return {}
-    end
+	local bible_data = bible.load_bible_data(view.get_translation())
+	if not bible_data then
+		return {}
+	end
 
-    local completions = {}
-    for _, book in ipairs(bible_data) do
-        if book.abbrev and book.abbrev:lower():find(arg_lead:lower(), 1, true) then
-            table.insert(completions, book.abbrev)
-        end
-    end
-    return completions
+	local completions = {}
+	for _, book in ipairs(bible_data) do
+		if book.abbrev and book.abbrev:lower():find(arg_lead:lower(), 1, true) then
+			table.insert(completions, book.abbrev)
+		end
+	end
+	return completions
 end
 
 local function bible_translation_handler(args)
-    if args.args == "" then
-        view.select_translation()
-    else
-        local translation = args.args:lower()
-        local available_translations = bible.get_available_translations()
+	if args.args == "" then
+		view.select_translation()
+	else
+		local translation = args.args:lower()
+		local available_translations = bible.get_available_translations()
 
-        -- Check if translation is downloaded
-        local translation_exists = false
-        for _, t in ipairs(available_translations) do
-            if t:lower() == translation then
-                translation_exists = true
-                break
-            end
-        end
+		-- Check if translation is downloaded
+		local translation_exists = false
+		for _, t in ipairs(available_translations) do
+			if t:lower() == translation then
+				translation_exists = true
+				break
+			end
+		end
 
-        if not translation_exists then
-            vim.notify(
-                string.format(
-                    "Translation '%s' is not downloaded. Available translations: %s",
-                    translation,
-                    table.concat(available_translations, ", ")
-                ),
-                vim.log.levels.ERROR
-            )
-            return
-        end
+		if not translation_exists then
+			vim.notify(
+				string.format(
+					"Translation '%s' is not downloaded. Available translations: %s",
+					translation,
+					table.concat(available_translations, ", ")
+				),
+				vim.log.levels.ERROR
+			)
+			return
+		end
 
-        view.set_translation(translation)
-        vim.notify(string.format("Changed translation to %s", translation:upper()), vim.log.levels.INFO)
+		view.set_translation(translation)
+		vim.notify(string.format("Changed translation to %s", translation:upper()), vim.log.levels.INFO)
 
-        -- Refresh current view if a chapter is open
-        local current = view.get_current_view()
-        if current then
-            view.open_chapter(translation, current.book_index, current.chapter, current.verse)
-        end
-    end
+		-- Refresh current view if a chapter is open
+		local current = view.get_current_view()
+		if current then
+			view.open_chapter(translation, current.book_index, current.chapter, current.verse)
+		end
+	end
 end
 
 local function bible_translation_complete(arg_lead)
-    local translations = bible.get_available_translations()
-    local completions = {}
-    for _, translation in ipairs(translations) do
-        if translation:lower():find(arg_lead:lower(), 1, true) then
-            table.insert(completions, translation)
-        end
-    end
-    return completions
+	local translations = bible.get_available_translations()
+	local completions = {}
+	for _, translation in ipairs(translations) do
+		if translation:lower():find(arg_lead:lower(), 1, true) then
+			table.insert(completions, translation)
+		end
+	end
+	return completions
 end
 
 local function bible_next_chapter_handler()
-    local current = view.get_current_view()
-    if not current then
-        vim.notify("No chapter is currently open", vim.log.levels.WARN)
-        return
-    end
+	local current = view.get_current_view()
+	if not current then
+		vim.notify("No chapter is currently open", vim.log.levels.WARN)
+		return
+	end
 
-    local bible_data = bible.load_bible_data(view.get_translation())
-    if not bible_data then
-        vim.notify("Failed to load bible data", vim.log.levels.ERROR)
-        return
-    end
+	local bible_data = bible.load_bible_data(view.get_translation())
+	if not bible_data then
+		vim.notify("Failed to load bible data", vim.log.levels.ERROR)
+		return
+	end
 
-    local book = bible_data[current.book_index]
-    if current.chapter >= #book.chapters then
-        vim.notify(string.format("Already at the last chapter of %s", book.name), vim.log.levels.WARN)
-        return
-    end
+	local book = bible_data[current.book_index]
+	if current.chapter >= #book.chapters then
+		vim.notify(string.format("Already at the last chapter of %s", book.name), vim.log.levels.WARN)
+		return
+	end
 
-    view.open_chapter(view.get_translation(), current.book_index, current.chapter + 1)
+	view.open_chapter(view.get_translation(), current.book_index, current.chapter + 1)
 end
 
 local function bible_previous_chapter_handler()
-    local current = view.get_current_view()
-    if not current then
-        vim.notify("No chapter is currently open", vim.log.levels.WARN)
-        return
-    end
+	local current = view.get_current_view()
+	if not current then
+		vim.notify("No chapter is currently open", vim.log.levels.WARN)
+		return
+	end
 
-    local bible_data = bible.load_bible_data(view.get_translation())
-    if not bible_data then
-        vim.notify("Failed to load bible data", vim.log.levels.ERROR)
-        return
-    end
+	local bible_data = bible.load_bible_data(view.get_translation())
+	if not bible_data then
+		vim.notify("Failed to load bible data", vim.log.levels.ERROR)
+		return
+	end
 
-    if current.chapter <= 1 then
-        local book = bible_data[current.book_index]
-        vim.notify(string.format("Already at the first chapter of %s", book.name), vim.log.levels.WARN)
-        return
-    end
+	if current.chapter <= 1 then
+		local book = bible_data[current.book_index]
+		vim.notify(string.format("Already at the first chapter of %s", book.name), vim.log.levels.WARN)
+		return
+	end
 
-    view.open_chapter(view.get_translation(), current.book_index, current.chapter - 1)
+	view.open_chapter(view.get_translation(), current.book_index, current.chapter - 1)
 end
 
 function M.setup()
-    vim.api.nvim_create_user_command("BibleDownload", bible_download_handler, {})
-    vim.api.nvim_create_user_command("BibleRead", bible_read_handler, {
-        nargs = "*",
-        complete = bible_read_complete,
-    })
-    vim.api.nvim_create_user_command("BibleTranslation", bible_translation_handler, {
-        nargs = "?",
-        complete = bible_translation_complete,
-    })
-    vim.api.nvim_create_user_command("BibleNextChapter", bible_next_chapter_handler, {})
-    vim.api.nvim_create_user_command("BiblePreviousChapter", bible_previous_chapter_handler, {})
+	vim.api.nvim_create_user_command("BibleDownload", bible_download_handler, {})
+	vim.api.nvim_create_user_command("BibleRead", bible_read_handler, {
+		nargs = "*",
+		complete = bible_read_complete,
+	})
+	vim.api.nvim_create_user_command("BibleTranslation", bible_translation_handler, {
+		nargs = "?",
+		complete = bible_translation_complete,
+	})
+	vim.api.nvim_create_user_command("BibleNextChapter", bible_next_chapter_handler, {})
+	vim.api.nvim_create_user_command("BiblePreviousChapter", bible_previous_chapter_handler, {})
 end
 
 return M
