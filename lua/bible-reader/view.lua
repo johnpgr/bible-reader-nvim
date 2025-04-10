@@ -50,7 +50,7 @@ local format_options = {
 }
 
 ---Set format options for Bible display
----@param opts BibleFormatOptions
+---@param opts FormatOptions
 function M.set_format_options(opts)
 	format_options.max_line_length = opts.max_line_length or format_options.max_line_length
 	format_options.indent_size = opts.indent_size or format_options.indent_size
@@ -130,22 +130,23 @@ function M.select_translation()
 		:find()
 end
 
+local superscripts = {
+	["0"] = "⁰",
+	["1"] = "¹",
+	["2"] = "²",
+	["3"] = "³",
+	["4"] = "⁴",
+	["5"] = "⁵",
+	["6"] = "⁶",
+	["7"] = "⁷",
+	["8"] = "⁸",
+	["9"] = "⁹",
+}
+
 ---Format verse number as superscript
 ---@param num number
 ---@return string
 local function to_superscript(num)
-	local superscripts = {
-		["0"] = "⁰",
-		["1"] = "¹",
-		["2"] = "²",
-		["3"] = "³",
-		["4"] = "⁴",
-		["5"] = "⁵",
-		["6"] = "⁶",
-		["7"] = "⁷",
-		["8"] = "⁸",
-		["9"] = "⁹",
-	}
 	local res, _ = string.gsub(tostring(num), ".", function(c)
 		return superscripts[c] or c
 	end)
@@ -170,6 +171,7 @@ local function format_chapter(verses, chapter_num, book_name)
 		local header = string.format("%s %d", book_name:upper(), chapter_num)
 		local padding = string.rep("═", math.floor((max_length - #header) / 2))
 		table.insert(lines, padding .. " " .. header .. " " .. padding)
+
 		if format_options.verse_spacing > 0 then
 			for _ = 1, format_options.verse_spacing do
 				table.insert(lines, "")
@@ -302,8 +304,9 @@ function M.open_chapter(translation, book, chapter, verse)
 		book_data = bible_data[book]
 		book_index = book
 	else
+		local book_lower = book:lower()
 		for idx, b in ipairs(bible_data) do
-			if b.name:lower() == book:lower() or b.abbrev:lower() == book:lower() then
+			if b.name:lower() == book_lower or b.abbrev:lower() == book_lower then
 				book_data = b
 				book_index = idx
 				break
