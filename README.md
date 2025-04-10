@@ -22,8 +22,31 @@ A Neovim plugin for reading the Bible directly in your editor with support for m
 Using packer.nvim:
 ```lua
 use {
-    'username/bible-reader.nvim',
+    'johnpgr/bible-reader.nvim',
     requires = {'nvim-telescope/telescope.nvim'}
+}
+```
+
+Using Lazy.nvim
+```lua
+{
+    'johnpgr/bible-reader.nvim',
+    dependencies = {'nvim-telescope/telescope.nvim'},
+    config = function()
+        require('bible-reader').setup({
+            -- Format options for Bible display
+            format = {
+                max_line_length = 80,    -- Maximum line length for text wrapping
+                indent_size = 0,         -- Number of spaces to indent wrapped lines
+                verse_spacing = 0,       -- Number of lines between verses
+                chapter_header = true,   -- Whether to show chapter headers
+            },
+            -- Default translation (e.g., 'en_kjv' for King James Version)
+            default_translation = 'en_kjv',
+            -- UI language (default: 'en')
+            language = 'en'
+        })
+    end
 }
 ```
 
