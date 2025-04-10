@@ -135,7 +135,7 @@ function M.download_translation(abbreviation)
 	return true
 end
 
----@class BibleFormatOptions
+---@class FormatOptions
 ---@field max_line_length number Maximum line length for text wrapping (default: 80)
 ---@field indent_size number Number of spaces to indent wrapped lines (default: 0)
 ---@field verse_spacing number Number of lines between verses (default: 0)
@@ -144,12 +144,12 @@ end
 
 ---@class BibleReaderOptions
 ---@field translation? string Default translation to use (e.g., 'pt_nvi', 'en_kjv')
----@field format? BibleFormatOptions Formatting options for Bible text display
+---@field format? FormatOptions Formatting options for Bible text display
 ---@field language? string Language code for UI strings (e.g., 'en', 'pt_br', default: 'en')
 
 -- Default configuration
 ---@type BibleReaderOptions
-local default_config = {
+M.default_config = {
 	translation = "en_kjv",
 	language = "en",
 	format = {
@@ -164,7 +164,7 @@ local default_config = {
 ---Setup the plugin with options
 ---@param opts? BibleReaderOptions Plugin options
 function M.setup(opts)
-	opts = vim.tbl_deep_extend("force", default_config, opts or {})
+	opts = vim.tbl_deep_extend("force", M.default_config, opts or {})
 
 	-- Set default translation if provided
 	local view = require("bible-reader.view")

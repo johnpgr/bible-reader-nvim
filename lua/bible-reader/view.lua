@@ -35,31 +35,20 @@ function M.get_current_view()
 	return current_view
 end
 
----@class FormatOptions
----@field max_line_length number Maximum line length for text wrapping
----@field indent_size number Number of spaces to indent wrapped lines
----@field verse_spacing number Number of lines between verses
----@field chapter_header boolean Whether to show chapter header
----@field break_verses boolean Whether to start each verse on a new line
-
 -- Default format options
----@type FormatOptions
-local format_options = {
-	max_line_length = 80,
-	indent_size = 0,
-	verse_spacing = 0,
-	chapter_header = true,
-    break_verses = true,
-}
+---@type FormatOptions|nil
+local format_options = nil
 
 ---Set format options for Bible display
 ---@param opts FormatOptions
 function M.set_format_options(opts)
-	format_options.max_line_length = opts.max_line_length or format_options.max_line_length
-	format_options.indent_size = opts.indent_size or format_options.indent_size
-	format_options.verse_spacing = opts.verse_spacing or format_options.verse_spacing
-	format_options.chapter_header = opts.chapter_header ~= nil and opts.chapter_header or format_options.chapter_header
-    format_options.break_verses = opts.break_verses ~= nil and opts.break_verses or format_options.break_verses
+    format_options = {
+        max_line_length = opts.max_line_length,
+        indent_size = opts.indent_size,
+        verse_spacing = opts.verse_spacing,
+        chapter_header = opts.chapter_header,
+        break_verses = opts.break_verses,
+    }
 end
 
 -- Default translation (can be changed via setup)
@@ -164,6 +153,7 @@ end
 ---@param book_name string
 ---@return string[]
 local function format_chapter(verses, chapter_num, book_name)
+	assert(format_options ~= nil, "Format options not set. Please call M.set_format_options() before formatting.")
 	local lines = {}
 	local current_line = ""
 	local line_length = 0
@@ -192,26 +182,22 @@ local function format_chapter(verses, chapter_num, book_name)
 			local word_with_space = (is_line_start and "" or " ") .. word
 
 			if line_length + #word_with_space > max_length and line_length > 0 then
-				table.insert(lines, current_line)
-				current_line = indent .. word
-				line_length = #indent + #word
+				table.insert(lines, indent .. current_line)
+				current_line = word
+				line_length = #word
 			else
-				if current_line ~= "" then
-					current_line = current_line .. " "
-					line_length = line_length + 1
-				end
-				current_line = current_line .. word
-				line_length = line_length + #word
+                current_line = is_line_start and word or (current_line .. " " .. word)
+                line_length = is_line_start and #word or (line_length + #word_with_space)
 			end
 		end
 
 		-- End of verse
 		if current_line ~= "" then
-			table.insert(lines, current_line)
-            if format_options.break_verses then
-                current_line = ""
-                line_length = 0
-            end
+			if format_options.break_verses then
+                table.insert(lines, current_line)
+				current_line = ""
+				line_length = 0
+			end
 		end
 
 		-- Add verse spacing if configured
