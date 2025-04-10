@@ -1,7 +1,8 @@
-local M = {}
 local util = require("bible-reader.util")
 local view = require("bible-reader.view")
 local bible = require("bible-reader")
+
+local M = {}
 
 local function bible_download_handler()
 	local index_data = util.load_index_data()
@@ -49,7 +50,7 @@ local function bible_download_handler()
 
 					vim.schedule(function()
 						vim.notify("Downloading " .. selection.value .. "...", vim.log.levels.INFO)
-						local success, err = M.download_translation(selection.value)
+						local success, err = bible.download_translation(selection.value)
 
 						if success then
 							vim.notify("Successfully downloaded " .. selection.value, vim.log.levels.INFO)
