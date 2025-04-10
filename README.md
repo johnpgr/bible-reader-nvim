@@ -76,6 +76,8 @@ require('bible-reader').setup({
 - `:BibleTranslation` - Change Bible translation
 - `:BibleOpen <translation> <book> <chapter> [verse]` - Open specific chapter
 - `:BibleDownload` - Download available translations
+- `:BibleNextChapter` - View next chapter (relative to current chapter)
+- `:BiblePreviousChapter`- View previous chapter (relative to current chapter)
 
 ### Navigation
 
