@@ -72,9 +72,9 @@ require('bible-reader').setup({
 
 ### Commands
 
-- `:BibleSelect` - Open book selection with Telescope
+- `:BibleRead` - Open book selection with Telescope
+- `:BibleRead <book> <chapter> [verse]` - Open specific chapter
 - `:BibleTranslation` - Change Bible translation
-- `:BibleOpen <translation> <book> <chapter> [verse]` - Open specific chapter
 - `:BibleDownload` - Download available translations
 - `:BibleNextChapter` - View next chapter (relative to current chapter)
 - `:BiblePreviousChapter`- View previous chapter (relative to current chapter)
@@ -85,12 +85,10 @@ Use Telescope interface to:
 1. Select a Bible translation
 2. Choose a book
 3. Pick a chapter
-4. (Optional) Jump to specific verse
 
 ### Customization
 
 The plugin supports:
-- Custom text formatting
 - Multiple translations
 - International UI languages
 - Verse spacing and indentation
