@@ -152,47 +152,61 @@ local function bible_translation_complete(arg_lead)
 end
 
 local function bible_next_chapter_handler()
-	local current = view.get_current_view()
-	if not current then
-		vim.notify("No chapter is currently open", vim.log.levels.WARN)
-		return
-	end
+    local current = view.get_current_view()
+    if not current then
+        vim.notify("No chapter is currently open", vim.log.levels.WARN)
+        return
+    end
 
-	local bible_data = bible.load_bible_data(view.get_translation())
-	if not bible_data then
-		vim.notify("Failed to load bible data", vim.log.levels.ERROR)
-		return
-	end
+    local bible_data = bible.load_bible_data(view.get_translation())
+    if not bible_data then
+        vim.notify("Failed to load bible data", vim.log.levels.ERROR)
+        return
+    end
 
-	local book = bible_data[current.book_index]
-	if current.chapter >= #book.chapters then
-		vim.notify(string.format("Already at the last chapter of %s", book.name), vim.log.levels.WARN)
-		return
-	end
+    local book = bible_data[current.book_index]
+    if current.chapter >= #book.chapters then
+        -- Check if there's a next book
+        if current.book_index < #bible_data then
+            local next_book = bible_data[current.book_index + 1]
+            view.open_chapter(view.get_translation(), current.book_index + 1, 1)
+            vim.notify(string.format("Moving to %s chapter 1", next_book.name), vim.log.levels.INFO)
+        else
+            vim.notify("Already at the last chapter of the last book", vim.log.levels.WARN)
+        end
+        return
+    end
 
-	view.open_chapter(view.get_translation(), current.book_index, current.chapter + 1)
+    view.open_chapter(view.get_translation(), current.book_index, current.chapter + 1)
 end
 
 local function bible_previous_chapter_handler()
-	local current = view.get_current_view()
-	if not current then
-		vim.notify("No chapter is currently open", vim.log.levels.WARN)
-		return
-	end
+    local current = view.get_current_view()
+    if not current then
+        vim.notify("No chapter is currently open", vim.log.levels.WARN)
+        return
+    end
 
-	local bible_data = bible.load_bible_data(view.get_translation())
-	if not bible_data then
-		vim.notify("Failed to load bible data", vim.log.levels.ERROR)
-		return
-	end
+    local bible_data = bible.load_bible_data(view.get_translation())
+    if not bible_data then
+        vim.notify("Failed to load bible data", vim.log.levels.ERROR)
+        return
+    end
 
-	if current.chapter <= 1 then
-		local book = bible_data[current.book_index]
-		vim.notify(string.format("Already at the first chapter of %s", book.name), vim.log.levels.WARN)
-		return
-	end
+    if current.chapter <= 1 then
+        -- Check if there's a previous book
+        if current.book_index > 1 then
+            local prev_book = bible_data[current.book_index - 1]
+            local last_chapter = #prev_book.chapters
+            view.open_chapter(view.get_translation(), current.book_index - 1, last_chapter)
+            vim.notify(string.format("Moving to %s chapter %d", prev_book.name, last_chapter), vim.log.levels.INFO)
+        else
+            vim.notify("Already at the first chapter of the first book", vim.log.levels.WARN)
+        end
+        return
+    end
 
-	view.open_chapter(view.get_translation(), current.book_index, current.chapter - 1)
+    view.open_chapter(view.get_translation(), current.book_index, current.chapter - 1)
 end
 
 function M.setup()
