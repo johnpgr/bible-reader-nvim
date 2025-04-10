@@ -153,13 +153,6 @@ local function to_superscript(num)
 	return res
 end
 
----Create winbar text for Bible reading
----@param view ViewConfig
----@return string
-local function make_winbar(view)
-	return string.format("%s | %s %d", view.translation:upper(), view.book, view.chapter)
-end
-
 ---Format chapter content for display
 ---@param verses BibleVerse[]
 ---@param chapter_num number
@@ -366,8 +359,6 @@ function M.open_chapter(translation, book, chapter, verse)
 
 	current_view =
 		{ translation = translation, book = book_data.name, book_index = book_index, chapter = chapter, verse = verse }
-	-- Set up winbar
-	vim.wo[win].winbar = make_winbar(current_view)
 
 	-- If a verse is specified, find and move cursor to that verse
 	if verse then

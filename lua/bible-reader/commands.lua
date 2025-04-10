@@ -150,6 +150,50 @@ local function bible_translation_complete(arg_lead)
     return completions
 end
 
+local function bible_next_chapter_handler()
+    local current = view.get_current_view()
+    if not current then
+        vim.notify("No chapter is currently open", vim.log.levels.WARN)
+        return
+    end
+
+    local bible_data = bible.load_bible_data(view.get_translation())
+    if not bible_data then
+        vim.notify("Failed to load bible data", vim.log.levels.ERROR)
+        return
+    end
+
+    local book = bible_data[current.book_index]
+    if current.chapter >= #book.chapters then
+        vim.notify(string.format("Already at the last chapter of %s", book.name), vim.log.levels.WARN)
+        return
+    end
+
+    view.open_chapter(view.get_translation(), current.book_index, current.chapter + 1)
+end
+
+local function bible_previous_chapter_handler()
+    local current = view.get_current_view()
+    if not current then
+        vim.notify("No chapter is currently open", vim.log.levels.WARN)
+        return
+    end
+
+    local bible_data = bible.load_bible_data(view.get_translation())
+    if not bible_data then
+        vim.notify("Failed to load bible data", vim.log.levels.ERROR)
+        return
+    end
+
+    if current.chapter <= 1 then
+        local book = bible_data[current.book_index]
+        vim.notify(string.format("Already at the first chapter of %s", book.name), vim.log.levels.WARN)
+        return
+    end
+
+    view.open_chapter(view.get_translation(), current.book_index, current.chapter - 1)
+end
+
 function M.setup()
     vim.api.nvim_create_user_command("BibleDownload", bible_download_handler, {})
     vim.api.nvim_create_user_command("BibleRead", bible_read_handler, {
@@ -160,6 +204,8 @@ function M.setup()
         nargs = "?",
         complete = bible_translation_complete,
     })
+    vim.api.nvim_create_user_command("BibleNextChapter", bible_next_chapter_handler, {})
+    vim.api.nvim_create_user_command("BiblePreviousChapter", bible_previous_chapter_handler, {})
 end
 
 return M
